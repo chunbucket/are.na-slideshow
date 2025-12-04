@@ -761,15 +761,16 @@
     let touchEndX = 0;
     let touchStartY = 0;
     let touchEndY = 0;
+    let isHorizontalSwipe = false;
 
     function handleSwipe() {
       const swipeThreshold = 50;
-      const horizontalDistance = touchEndX - touchStartX;
+      const horizontalDistance = Math.abs(touchEndX - touchStartX);
       const verticalDistance = Math.abs(touchEndY - touchStartY);
 
-      // Only trigger if horizontal swipe is dominant
-      if (verticalDistance < 100 && Math.abs(horizontalDistance) > swipeThreshold) {
-        if (horizontalDistance > 0) {
+      // Only trigger if horizontal swipe is dominant and was determined at start
+      if (isHorizontalSwipe && horizontalDistance > swipeThreshold) {
+        if (touchEndX > touchStartX) {
           // Swipe right - previous slide
           showSlide(currentIndex - 1);
         } else {
@@ -879,12 +880,28 @@
     stage.addEventListener('touchstart', (e) => {
       touchStartX = e.changedTouches[0].screenX;
       touchStartY = e.changedTouches[0].screenY;
+      isHorizontalSwipe = false;
     }, { passive: true });
+
+    stage.addEventListener('touchmove', (e) => {
+      // Determine swipe direction early
+      const touchCurrentX = e.changedTouches[0].screenX;
+      const touchCurrentY = e.changedTouches[0].screenY;
+      const diffX = Math.abs(touchCurrentX - touchStartX);
+      const diffY = Math.abs(touchCurrentY - touchStartY);
+
+      // If horizontal movement is greater, it's a horizontal swipe
+      if (diffX > diffY && diffX > 10) {
+        isHorizontalSwipe = true;
+        e.preventDefault(); // Only prevent default for horizontal swipes
+      }
+    }, { passive: false });
 
     stage.addEventListener('touchend', (e) => {
       touchEndX = e.changedTouches[0].screenX;
       touchEndY = e.changedTouches[0].screenY;
       handleSwipe();
+      isHorizontalSwipe = false;
     }, { passive: true });
 
     // Tap to pause/play on mobile
