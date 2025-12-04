@@ -536,17 +536,56 @@
       });
     }
 
+    function fitTextToSlide(slideElement) {
+      const textElement = slideElement.querySelector('.slide-text');
+      if (!textElement) return;
+
+      // Reset to default size first
+      textElement.style.fontSize = '1.5rem';
+
+      // Check if content overflows
+      const slideHeight = slideElement.clientHeight;
+      const textHeight = textElement.scrollHeight;
+
+      if (textHeight > slideHeight) {
+        // Binary search for optimal font size
+        let minSize = 0.5;
+        let maxSize = 1.5;
+        let optimalSize = maxSize;
+
+        while (maxSize - minSize > 0.05) {
+          const midSize = (minSize + maxSize) / 2;
+          textElement.style.fontSize = `${midSize}rem`;
+
+          if (textElement.scrollHeight <= slideHeight) {
+            optimalSize = midSize;
+            minSize = midSize;
+          } else {
+            maxSize = midSize;
+          }
+        }
+
+        textElement.style.fontSize = `${optimalSize}rem`;
+      }
+    }
+
     function showSlide(index) {
       if (blocks.length === 0) return;
-      
+
       currentIndex = ((index % blocks.length) + blocks.length) % blocks.length;
-      
+
       document.querySelectorAll('.slide').forEach((slide, i) => {
         slide.classList.toggle('active', i === currentIndex);
       });
-      
+
       counter.textContent = `${currentIndex + 1}/${blocks.length}`;
       blockTitle.textContent = blocks[currentIndex].title || blocks[currentIndex].class || '—';
+
+      // Fit text to slide after it becomes active
+      const activeSlide = document.querySelector('.slide.active');
+      if (activeSlide) {
+        setTimeout(() => fitTextToSlide(activeSlide), 50);
+      }
 
       resetProgress();
     }
