@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>ency — Are.na Slideshow</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,7 +28,12 @@
       background: var(--bg);
       color: var(--fg);
       min-height: 100vh;
+      min-height: -webkit-fill-available;
       overflow: hidden;
+    }
+
+    html {
+      height: -webkit-fill-available;
     }
 
     .container {
@@ -65,6 +72,36 @@
       display: flex;
       gap: 1rem;
       align-items: center;
+    }
+
+    @media (max-width: 768px) {
+      .controls button {
+        display: none;
+      }
+
+      .controls {
+        gap: 0.5rem;
+      }
+
+      header {
+        padding-bottom: 1rem;
+      }
+
+      footer {
+        padding-top: 1rem;
+      }
+
+      .container {
+        padding: 1rem;
+      }
+
+      .nav-hint {
+        display: none;
+      }
+
+      #fullscreen-btn {
+        display: none;
+      }
     }
 
     .counter {
@@ -703,11 +740,42 @@
 
     function toggleFullscreen() {
       if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen();
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          document.documentElement.webkitRequestFullscreen();
+        }
         fullscreenBtn.textContent = '⛶';
       } else {
-        document.exitFullscreen();
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
         fullscreenBtn.textContent = '⛶';
+      }
+    }
+
+    // Touch gesture handling
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+
+    function handleSwipe() {
+      const swipeThreshold = 50;
+      const horizontalDistance = touchEndX - touchStartX;
+      const verticalDistance = Math.abs(touchEndY - touchStartY);
+
+      // Only trigger if horizontal swipe is dominant
+      if (verticalDistance < 100 && Math.abs(horizontalDistance) > swipeThreshold) {
+        if (horizontalDistance > 0) {
+          // Swipe right - previous slide
+          showSlide(currentIndex - 1);
+        } else {
+          // Swipe left - next slide
+          showSlide(currentIndex + 1);
+        }
       }
     }
 
@@ -804,6 +872,26 @@
       const slug = extractChannelSlug(url);
       if (slug) {
         fetchChannel(slug);
+      }
+    });
+
+    // Touch event listeners for swipe gestures
+    stage.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    stage.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      touchEndY = e.changedTouches[0].screenY;
+      handleSwipe();
+    }, { passive: true });
+
+    // Tap to pause/play on mobile
+    stage.addEventListener('click', (e) => {
+      // Only on touch devices and if not clicking input
+      if ('ontouchstart' in window && !e.target.closest('input, button, a')) {
+        togglePlay();
       }
     });
 
